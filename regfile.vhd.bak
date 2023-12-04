@@ -1,0 +1,78 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity regfile is 
+	port (reg_a1: in std_logic_vector(2 downto 0);  --IR 9-11
+			reg_a2: in std_logic_vector(2 downto 0);	--IR 6-8
+			reg_a3: in std_logic_vector(2 downto 0);
+--			RF_D1: out std_logic_vector(15 downto 0);
+--			RF_D2: out std_logic_vector(15 downto 0);
+			pc_in: in std_logic_vector(15 downto 0);
+			pc_out: out std_logic_vector(15 downto 0);
+			clk: in std_logic;
+			state: in std_logic_vector(5 downto 0);
+			t3: in std_logic_vector(15 downto 0);
+			
+			t1: out std_logic_vector(15 downto 0);
+			t1_in: in std_logic_vector(15 downto 0);
+			t2: out std_logic_vector(15 downto 0);
+			t2_in: in std_logic_vector(15 downto 0);
+			
+	);
+end entity;
+
+type mem_array is array (0 to 7 ) of std_logic_vector (15 downto 0);
+signal regs: mem_array :=(
+   x"0000",x"FFFF", x"FFFF", x"FFFF",
+	x"FFFF",x"FFFF", x"FFFF", x"FFFF" -- 'F' is in hexa decimal , 15 = "1111"
+   ); 
+begin
+
+regs_read: process(reg_a1, reg_a2, state)
+begin 
+	--s1: Read Operands
+	if (state = "0001") then  
+	
+		t1 <= regs(to_integer(unsigned(reg_a1)));
+		t2 <= regs(to_integer(unsigned(reg_a2)));
+	
+	--s13: Store data of A2 in D1	
+	elsif (state="1101") then 
+			pc_out <= regs(to_integer(unsigned(reg_a1)));
+			
+	--S14: Signed extension of 6 bit and store in T2		
+	elsif (state="1110") then  
+		t1 <= regs(to_integer(unsigned(reg_a1)));
+		
+		
+	end if;
+ end process;
+ 
+regs_write: process(clk)
+begin
+ if (falling_edge(clk)) then
+ 
+	--s3: Update Register
+	if (state = "0011") then 	
+		regs(to_integer(unsigned(reg_a3)))<= t3;
+		
+	--s6:	
+	elsif (state="0110") then 
+		regs(to_integer(unsigned(reg_a3)))<= t3;
+		
+	--s9:	
+	elsif (state="1001") then 
+		regs(to_integer(unsigned(reg_a3))) <= ZERO_EXTENDER; -- change the name for zero extender
+		
+	--s11:	
+	elsif (state="1101") then	 
+		regs(to_integer(unsigned(reg_a3))) <= pc_in;
+		
+	
+	
+	end if;
+	end if;
+end process;
+end working;
+ 

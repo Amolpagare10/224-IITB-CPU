@@ -1,0 +1,99 @@
+library ieee;
+use ieee.std_logic_1164.all;
+library work;
+use ieee.numeric_std.all;
+
+entity alu is
+port(state: in std_logic_vector(3 downto 0);
+	 t1: in std_logic_vector(15 downto 0);
+	 t1_out: out std_logic_vector(15 downto 0);
+	 t2: in std_logic_vector(15 downto 0);
+	 pc_in: in std_logic_vector(15 downto 0);
+	 --one_bit_shifter: in std_logic_vector(15 downto 0);
+	 sign_extender_9: in std_logic_vector(15 downto 0);
+	 sign_extender_6: in std_logic_vector(15 downto 0);
+	 t3: out std_logic_vector(15 downto 0);
+	 carry_out: out std_logic;
+	 zero_out: out std_logic;
+	 pc_out: out std_logic_vector(15 downto 0)
+	 );
+end entity;
+	 
+architecture working of alu is
+signal carry: std_logic:='0';
+signal zero: std_logic:='0';	
+
+begin
+	carry_out <= carry;
+	zero_out<= zero;
+	compute : process(t1,t2, pc_in, one_bit_shifter, sign_extender_9, sign_extender_6, state)
+	variable temp: integer;
+ 
+   begin
+	 if (state="0012") then --state 2
+		 --Execute Addition for data in 2 registers
+		 temp := to_integer(unsigned(t1)) + to_integer(unsigned(t2));
+		 if (temp>=65536) then
+			carry <= '1';
+			t3 <= std_logic_vector(to_unsigned(temp-65536,16));
+		else
+			carry <= '0';
+			t3 <= std_logic_vector(to_unsigned(temp,16));
+		end if; 
+		
+	elsif (state="	0100") then --s4
+		 --Computing address of the memory destination
+		 temp := to_integer(unsigned(t1)) + to_integer(unsigned(sign_extender_6));
+		 if (temp>65535) then
+			carry <= '1';
+			t3 <= std_logic_vector(to_unsigned(temp-65535,16));
+		else
+			carry <= '0';
+			t3 <= std_logic_vector(to_unsigned(temp,16));
+		end if;	
+		
+	elsif (state="	1010") then --s10 complete with s15	
+		 --execute
+		 temp := to_integer(unsigned(t1)) + to_integer(unsigned(sign_extender_6));
+		 if (temp>65535) then
+			carry <= '1';
+			t3 <= std_logic_vector(to_unsigned(temp-65535,16));
+		else
+			carry <= '0';
+			t3 <= std_logic_vector(to_unsigned(temp,16));
+			
+			zero_out <= t3(15) nor t3(14) nor t3(13) nor t3(12) nor t3(11) nor t3(10) nor t3(9) nor t3(8) nor t3(7) nor t3(6) nor t3(5) nor t3(4) nor t3(3) nor t3(2) nor t3(1) nor t3(0);
+			if (zero_out = 1)then 
+				pc_out <= t3;
+			
+		end if;	
+	
+	elsif (state="	1100") then --s12
+		 --Signed extension of 9 bits and Add
+		 temp := to_integer(unsigned(pc_in)) + to_integer(unsigned(sign_extender_9));
+		 if (temp>65535) then
+			carry <= '1';
+			pc_in <= std_logic_vector(to_unsigned(temp-65535,16));
+		else
+			carry <= '0';
+			pc_in <= std_logic_vector(to_unsigned(temp,16));
+		end if;
+		
+		
+	elsif(state="0000") then --s0
+	-- Fetching Instruction from memory
+		temp := to_integer(unsigned(pc_in)) + 2;
+		pc_out <= std_logic_vector(to_unsigned(temp,16));	
+		
+		end if;
+	end process;
+end working;
+		
+		
+		
+		
+		
+		
+		
+		
+		

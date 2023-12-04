@@ -1,0 +1,66 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity mem is
+	port( t1_addr: in std_logic_vector(15 downto 0);
+	t3_addr: in std_logic_vector(15 downto 0);
+	 state: in std_logic_vector(5 downto 0);
+	 d_t1: in std_logic_vector(15 downto 0);
+	 d_t2: in std_logic_vector(15 downto 0);
+	 d_2: out std_logic_vector(15 downto 0);
+	 ir_d: out std_logic_vector(15 downto 0);
+	 ins_addr: in std_logic_vector(15 downto 0);
+	 clk : in std_logic
+	 );
+	 end entity;
+	 
+architecture working of mem is
+	type mem_array is array (0 to 31) of std_logic_vector(7 downto 0);
+    signal mem_data : mem_array := (
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000"
+    );
+	 
+	signal mem_inst : mem_array := (
+        "11010000", "11110111", "11111111", "00000000",
+        "11111111", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000",
+        "00000000", "00000000", "00000000", "00000000"
+    );
+	
+	begin
+	mem_w: process(clk)
+	begin
+	if (falling_edge(clk)) then
+	if(s="0111") then
+	 mem_data(to_integer(unsigned(t3_addr))) <= d_t2;
+	elsif(s="011001") then
+		 mem_data(to_integer(unsigned(t1_addr))) <= d_t2;
+	end if;
+	end if;
+	end process;
+	mem_r: process(s, t1_addr, t3_addr)
+	begin
+		if (s="0101") then
+			data_2<= mem_data(to_integer(unsigned(t3_addr)));
+		end if;
+	end process;
+	ir_d(15 downto 8) <= mem_inst(to_integer(unsigned(ins_addr))+1);
+	ir_d(7 downto 0) <= mem_inst(to_integer(unsigned(ins_addr)));
+	
+end exe;
+	
+	
+	
+	

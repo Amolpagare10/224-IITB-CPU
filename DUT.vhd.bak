@@ -1,0 +1,175 @@
+library ieee;
+use ieee.std_logic_1164.all;
+entity DUT is
+port ( input_vector : in std_logic_vector(0 downto 0);
+			output_vector: out std_logic_vector(6 downto 0));
+end entity;
+
+architecture DutWrap of DUT is
+	signal s: std_logic_vector(5 downto 0 ):="000001";
+	signal next_s: std_logic_vector(5 downto 0 ):="000001";
+	signal clk: std_logic;
+	signal rst: std_logic;
+	signal curr_ins, w_addr1, w_addr3,  w_t1_reg_forg, w_alu_pcout, w_dout, w_din_t1, w_din_t2, w_shift7_reg, w_t3_in, w_t1, w_t2, w_t2_in, w_pc_aluin,  w_pc_reg, w_pcout_reg, w_alu_t1, w_alu_t3, w_t1_alu, w_t2_alu, w_t2_1s, w_1s, w_se10, w_se7, w_ins_addr: std_logic_vector(15 downto 0);
+	signal w1,w2,w3: std_logic_vector(2 downto 0);
+	signal w4: std_logic_vector(8 downto 0);
+	signal w5: std_logic_vector(5 downto 0);
+	signal carry, zero: std_logic;
+
+component ins_decode is
+port(
+        next_s: out std_logic_vector(3 downto 0);
+		  s: in std_logic_vector(3 downto 0);
+		  opcode: in std_logic_vector(3 downto 0);
+		  imm: in std_logic_vector(8 downto 0);
+		  opout: out std_logic_vector(3 downto 0);
+		  c: in std_logic;
+		  z: in std_logic;
+		  test_out: out std_logic_vector(0 downto 0)
+		  );
+end component ins_decode;
+
+component ins_set is
+port( reset,clock:in std_logic;
+        next_s: in std_logic_vector(3 downto 0);
+		  s: out std_logic_vector(3 downto 0)
+		  );
+end component ins_set;
+
+	
+	--component ir is 
+		port (
+		reg_1: out std_logic_vector(2 downto 0);
+		reg_2: out std_logic_vector(2 downto 0);
+		reg_3: out std_logic_vector(2 downto 0);
+		shift7: out std_logic_vector(8 downto 0);
+		sign_ex: out std_logic_vector(5 downto 0);
+		mem: in std_logic_vector(15 downto 0);
+		clk: in std_logic;
+		state: in std_logic_vector(5 downto 0)
+	) ;
+	end component;
+	
+component mem is
+	port( t1_addr: in std_logic_vector(15 downto 0);
+	t3_addr: in std_logic_vector(15 downto 0);
+	 state: in std_logic_vector(5 downto 0);
+	 d_t1: in std_logic_vector(15 downto 0);
+	 d_t2: in std_logic_vector(15 downto 0);
+	 d_2: out std_logic_vector(15 downto 0);
+	 ir_d: out std_logic_vector(15 downto 0);
+	 ins_addr: in std_logic_vector(15 downto 0);
+	 clk : in std_logic
+	 );
+	 end component;
+	
+	--component registers is 
+	port (reg_a1: in std_logic_vector(2 downto 0);
+			reg_a2: in std_logic_vector(2 downto 0);
+			reg_a3: in std_logic_vector(2 downto 0);
+			t1: out std_logic_vector(15 downto 0);
+			t1_in: in std_logic_vector(15 downto 0);
+			t2: out std_logic_vector(15 downto 0);
+			t2_in: in std_logic_vector(15 downto 0);
+			t3: in std_logic_vector(15 downto 0);
+			shift7: in std_logic_vector(15 downto 0); 
+			pc_in: in std_logic_vector(15 downto 0);
+			pc_out: out std_logic_vector(15 downto 0);
+			clk: in std_logic;
+			state: in std_logic_vector(5 downto 0)
+	);
+	end component;
+	
+	--component temp_1 is
+		port(
+		alu: out std_logic_vector(15 downto 0);
+		reg: in std_logic_vector(15 downto 0);
+		clk: in std_logic;
+		data_1: out std_logic_vector(15 downto 0);
+		data_2: in std_logic_vector(15 downto 0);
+		state: in std_logic_vector(5 downto 0);
+		alu_in: in std_logic_vector(15 downto 0);
+		reg_out: out std_logic_vector(15 downto 0);
+		mem_a: out std_logic_vector(15 downto 0)
+	);
+	end component;
+	
+	
+component sign_extender_6_bit is
+	port(input: in std_logic_vector(5 downto 0);
+	s: in std_logic_vector(5 downto 0)
+	alu_b: out std_logic_vector(15 downto 0));
+end component;
+	
+	
+component sign_extender_9_bit is
+	port(input: in std_logic_vector(8 downto 0); 
+	s: in std_logic_vector(5 downto 0); 
+	alu_b: out std_logic_vector(15 downto 0));
+end component;
+	
+component shifter_left_8_bit is 
+	port (input: in std_logic_vector(15 downto 0);
+			rf_d3: out std_logic_vector(15 downto 0);
+			s: in std_logic_vector(3 downto 0));
+end component;
+	
+	
+component shifter_1_bit is 
+	port (input: in std_logic_vector(15 downto 0);
+			alu_b: out std_logic_vector(15 downto 0);
+			s: in std_logic_vector(3 downto 0));
+	end component;
+
+	
+component pro_count is 
+	port (alu_c: in std_logic_vector(15 downto 0);
+			reg_d: in std_logic_vector(15 downto 0);
+			alu_a: out std_logic_vector(15 downto 0);
+			data_1: out std_logic_vector(15 downto 0);
+			reg_out: out std_logic_vector(15 downto 0);
+			s: in std_logic_vector(3 downto 0);
+			clk: in std_logic
+	);
+	end component;
+	
+
+--component temp_2 is 
+	port(
+		alu: out std_logic_vector(15 downto 0);
+		reg_in: in std_logic_vector(15 downto 0);
+		reg_out: out std_logic_vector(15 downto 0);
+		clk: in std_logic;
+		data_1: out std_logic_vector(15 downto 0);
+		data_2: in std_logic_vector(15 downto 0);
+		state: in std_logic_vector(5 downto 0);
+		shift1: out std_logic_vector(15 downto 0)
+	);
+end component;
+
+
+--component temp_3 is 
+	port(
+		alu: in std_logic_vector(15 downto 0);
+		reg: out std_logic_vector(15 downto 0);
+		clk: in std_logic;
+		data_1: out std_logic_vector(15 downto 0);
+		state: in std_logic_vector(5 downto 0)
+	);
+end component;
+
+--component alu is
+	port(state: in std_logic_vector(5 downto 0);
+	 t1: in std_logic_vector(15 downto 0);
+	 t2: in std_logic_vector(15 downto 0);
+	 pc_in: in std_logic_vector(15 downto 0);
+	 one_bit_shifter: in std_logic_vector(15 downto 0);
+	 sign_extender_10: in std_logic_vector(15 downto 0);
+	 sign_extender_7: in std_logic_vector(15 downto 0);
+	 t3: out std_logic_vector(15 downto 0);
+	 t1_out: out std_logic_vector(15 downto 0);
+	 carry_out: out std_logic;
+	 zero_out: out std_logic;
+	 pc_out: out std_logic_vector(15 downto 0)
+	 );
+	 end component;
